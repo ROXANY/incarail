@@ -1,28 +1,49 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useAbility } from '@casl/vue';
+import { useAuthStore } from '@/stores/auth';
 
 interface MenuItem {
     title: string;
     icon: string;
     to: string;
+    action: string;
+    subject: string;
 }
 
 const route = useRoute();
+const router = useRouter();
+const auth = useAuthStore();
+const { can } = useAbility();
 const drawer = ref<boolean | null>(null);
 
-const pageTitle = computed(() => String(route.meta.title ?? ''));
-
 const footballItems: MenuItem[] = [
-    { title: 'Competiciones', icon: 'mdi-trophy-outline', to: '/competitions' },
-    { title: 'Equipos', icon: 'mdi-shield-outline', to: '/teams' },
-    { title: 'Jugadores', icon: 'mdi-account-group-outline', to: '/players' },
+    { title: 'Competiciones', icon: 'mdi-trophy-outline', to: '/competitions', action: 'view', subject: 'competitions' },
+    { title: 'Equipos', icon: 'mdi-shield-outline', to: '/teams', action: 'view', subject: 'teams' },
+    { title: 'Jugadores', icon: 'mdi-account-group-outline', to: '/players', action: 'view', subject: 'players' },
 ];
 
 const adminItems: MenuItem[] = [
-    { title: 'Usuarios', icon: 'mdi-account-cog-outline', to: '/admin/users' },
-    { title: 'Roles y permisos', icon: 'mdi-shield-key-outline', to: '/admin/roles' },
+    { title: 'Usuarios', icon: 'mdi-account-cog-outline', to: '/admin/users', action: 'view', subject: 'users' },
+    { title: 'Roles y permisos', icon: 'mdi-shield-key-outline', to: '/admin/roles', action: 'manage', subject: 'roles' },
 ];
+
+function initials(name: string): string {
+    const words = name.split(' ');
+    let result = '';
+
+    for (const word of words.slice(0, 2)) {
+        result += word.charAt(0).toUpperCase();
+    }
+
+    return result;
+}
+
+async function logout() {
+    await auth.logout();
+    router.push({ name: 'login' });
+}
 </script>
 
 <template>
@@ -35,44 +56,50 @@ const adminItems: MenuItem[] = [
         <v-divider />
 
         <v-list nav density="comfortable" color="primary">
-            <v-list-item
-                v-for="item in footballItems"
-                :key="item.to"
-                :to="item.to"
-                :prepend-icon="item.icon"
-                :title="item.title"
-            />
+            <template v-for="item in footballItems" :key="item.to">
+                <v-list-item
+                    v-if="can(item.action, item.subject)"
+                    :to="item.to"
+                    :prepend-icon="item.icon"
+                    :title="item.title"
+                />
+            </template>
 
-            <v-list-subheader class="mt-2">Administración</v-list-subheader>
+            <template v-if="can('view', 'users') || can('manage', 'roles')">
+                <v-list-subheader class="mt-2">Administración</v-list-subheader>
 
-            <v-list-item
-                v-for="item in adminItems"
-                :key="item.to"
-                :to="item.to"
-                :prepend-icon="item.icon"
-                :title="item.title"
-            />
+                <template v-for="item in adminItems" :key="item.to">
+                    <v-list-item
+                        v-if="can(item.action, item.subject)"
+                        :to="item.to"
+                        :prepend-icon="item.icon"
+                        :title="item.title"
+                    />
+                </template>
+            </template>
         </v-list>
     </v-navigation-drawer>
 
     <v-app-bar flat border="b">
         <v-app-bar-nav-icon class="d-md-none" @click="drawer = !drawer" />
-        <v-app-bar-title>{{ pageTitle }}</v-app-bar-title>
+        <v-app-bar-title>{{ route.meta.title }}</v-app-bar-title>
 
         <template #append>
-            <v-menu>
+            <v-menu v-if="auth.user">
                 <template #activator="{ props }">
                     <v-btn v-bind="props" variant="text" class="text-none">
                         <v-avatar color="primary" size="32" class="mr-sm-2">
-                            <span class="text-caption font-weight-bold">AD</span>
+                            <span class="text-caption font-weight-bold">{{ initials(auth.user.name) }}</span>
                         </v-avatar>
-                        <span class="d-none d-sm-inline">Admin Demo</span>
+                        <span class="d-none d-sm-inline">{{ auth.user.name }}</span>
                         <v-icon icon="mdi-chevron-down" end />
                     </v-btn>
                 </template>
 
                 <v-list density="compact">
-                    <v-list-item prepend-icon="mdi-logout" title="Cerrar sesión" />
+                    <v-list-item :subtitle="auth.user.email" :title="auth.user.roles.join(', ')" />
+                    <v-divider />
+                    <v-list-item prepend-icon="mdi-logout" title="Cerrar sesión" @click="logout" />
                 </v-list>
             </v-menu>
         </template>
