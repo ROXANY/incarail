@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'football_data' => [
+        'url' => env('FOOTBALL_DATA_URL', 'https://api.football-data.org/v4'),
+        'token' => env('FOOTBALL_DATA_TOKEN'),
+        'ttl_hours' => (int) env('FOOTBALL_DATA_TTL_HOURS', 24),
+        'max_requests_per_minute' => 9,
+    ],
+
 ];
