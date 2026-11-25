@@ -108,3 +108,7 @@ Ligas, equipos y jugadores tienen `external_id` único, y un equipo puede estar 
 
 - Una cola con un job por liga, para que nadie reciba un 429 y la descarga espere su turno. No la agregué para no exigir un worker extra.
 - Refrescar ligas y plantillas con una tarea programada.
+
+## Repositorio
+
+El enunciado no indica si el repositorio debe ser público; lo dejé público por indicación de la persona a cargo del proceso. No contiene secretos: el token y las llaves de Passport no se suben, y las contraseñas de prueba son solo para uso local.
